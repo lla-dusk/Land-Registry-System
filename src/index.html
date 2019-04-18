@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+	<html lang="zxx" class="no-js">
+	<head>
+		<!-- Mobile Specific Meta -->
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<!-- meta character set -->
+		<meta charset="UTF-8">
+		<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com"> -->
+		<!-- Site Title -->
+		<title>Real Estate</title>
+
+	</head>
+		<body>
+			
+			<!-- test 3 -->
+			<div id="accountAddress"></div>
+			<br><hr>
+
+			<form name = "myForm" method="get" onsubmit="App.user();">
+				<label for="ID">Enter ID: </label>
+				<!-- <input type="text" name="name" id = "yourName"> -->
+				<input type="number" name="ID" id="id"><br>
+			  	First name:
+			  	<input type="text" name="firstname" id="name"><br>
+			  	Age
+			  	<input type="number" name="Age" id="age"><br>
+			  	ADD:
+			  	<input type="text" name="Add" id="add"><br>
+			  	<!-- <input type="submit" name="submit"><br> -->
+
+				<button type="submit">Submit</button>
+				
+			</form><br>
+
+			<hr>
+
+			<form action="new.html" onsubmit="App.getUser(); return false">
+
+				Enter the ID:- 
+				<input type="number" name="ID" id="srchID"><br>
+				<button type="submit">Submit</button>
+				
+			</form>
+
+			<hr>
+			<div id="show">
+				<table id="table">
+					
+				</table>
+				
+			</div>
+
+			
+			<script type="text/javascript" src="js/jquery-2.2.4.min.js"></script>
+			 <script src="js/web3.min.js"></script>
+    		<script src="js/truffle-contract.js"></script>
+    		<script src="js/app.js"></script>
+		</body>
+	</html>
