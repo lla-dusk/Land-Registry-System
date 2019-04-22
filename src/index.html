@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+	<!DOCTYPE html>
 	<html lang="zxx" class="no-js">
 	<head>
 		<!-- Mobile Specific Meta -->
-		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<!-- <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> -->
 		<!-- meta character set -->
 		<meta charset="UTF-8">
 		<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com"> -->
@@ -16,25 +16,36 @@
 			<div id="accountAddress"></div>
 			<br><hr>
 
-			<form name = "myForm" method="get" onsubmit="App.user();">
-				<label for="ID">Enter ID: </label>
-				<!-- <input type="text" name="name" id = "yourName"> -->
-				<input type="number" name="ID" id="id"><br>
-			  	First name:
-			  	<input type="text" name="firstname" id="name"><br>
-			  	Age
-			  	<input type="number" name="Age" id="age"><br>
-			  	ADD:
-			  	<input type="text" name="Add" id="add"><br>
-			  	<!-- <input type="submit" name="submit"><br> -->
+			<div align="center">
+				<a href="register.html"><button>Register</button></a>
+			</div>
+
+			<div align="center">
+				<a href="login.html"><button>Login</button></a>
+			</div>
+<!-- 
+			<form name = "myForm" onsubmit="App.user(); return false;">
+			  	Name:
+			  	<input type="text" name="name" id="name"><br>
+			  	<label for="adhar">Enter Adhar: </label>
+				
+				<input type="text" name="adhar" id="adhar"><br>
+				Pan
+				<input type="text" name="Pan" id="Pan"><br>
+			  	email:
+			  	<input type="email" name="email" id="email"><br>
+			  	Phone
+			  	<input type="number" name="Phone" id="Phone"><br>
+			  	
 
 				<button type="submit">Submit</button>
 				
-			</form><br>
+			</form> -->
+			<br>
 
 			<hr>
 
-			<form action="new.html" onsubmit="App.getUser(); return false">
+			<form name = "myForm2" action="new.html">
 
 				Enter the ID:- 
 				<input type="number" name="ID" id="srchID"><br>
@@ -54,6 +65,6 @@
 			<script type="text/javascript" src="js/jquery-2.2.4.min.js"></script>
 			 <script src="js/web3.min.js"></script>
     		<script src="js/truffle-contract.js"></script>
-    		<script src="js/app.js"></script>
+    		<script src="js/index_app.js"></script>
 		</body>
 	</html>

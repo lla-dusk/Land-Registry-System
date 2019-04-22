@@ -1,0 +1,116 @@
+	<!DOCTYPE html>
+	<html lang="zxx" class="no-js">
+	<head>
+		<!-- Mobile Specific Meta -->
+		<!-- <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> -->
+		<!-- meta character set -->
+		<meta charset="UTF-8">
+		<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com"> -->
+		<!-- Site Title -->
+		<title>Real Estate</title>
+		<style>
+		
+				body {
+				  font-family: Arial, Helvetica, sans-serif;
+				  background-color: black;
+				}
+
+				* {
+				  box-sizing: border-box;
+				}
+
+				/* Add padding to containers */
+				.container {
+				  padding: 16px;
+				  background-color: white;
+				  width:50%;
+				  margin:50px 50px 50px 350px;
+				}
+
+				/* Full-width input fields */
+				input[type=text], input[type=password], input[type=number] {
+				  width: 100%;
+				  padding: 15px;
+				  margin: 5px 0 22px 0;
+				  display: inline-block;
+				  border: none;
+				  background: #f1f1f1;
+				}
+				
+				input[type=text]:focus, input[type=password]:focus, input[type=number]:focus {
+				  background-color: #ddd;
+				  outline: none;
+				}
+				
+				/* Set a style for the submit button */
+				.registerbtn {
+				  background-color: #4CAF50;
+				  color: white;
+				  padding: 16px 20px;
+				  margin: 8px 0;
+				  border: none;
+				  cursor: pointer;
+				  width: 100%;
+				  opacity: 0.9;
+				}
+				
+				/* Set a grey background color and center the text of the "sign in" section */
+				.signin {
+				  background-color: #f1f1f1;
+				  text-align: center;
+				}
+				
+		</style>
+
+	</head>
+		<body>
+			<br>
+			<div class="container">
+			<center>
+			<h1>Register</h1>
+			<p>Please fill in this form to create an account.</p> </center>
+			<hr>
+			<form name = "myForm" onsubmit="App.user(); return false;">
+				
+				<label for="name"><b>Full Name</b></label>
+				<input type="text" placeholder="Enter Full Name" name="firstname" id="name" required>
+								
+				<label for="adhaarno"><b>Adhaar Number</b></label>
+				<input type="number" placeholder="Enter Adhaar Number" name="Adhaarno" id="adhar" required>
+				
+				<label for="panno"><b>PAN Number</b></label>
+				<input type="text" placeholder="Enter PAN Number" name="Panno" id="Pan" required>
+
+				<label for="email"><b>Email</b></label>
+				<input type="text" placeholder="Enter Email" name="Email" id="email" required>
+
+				<label for="mobno"><b>Mobile Number</b></label>
+				<input type="number" placeholder="Enter Mobile Number" name="Mobno" id="Phone" required>
+				
+				<label for="psw"><b>Password</b></label>
+				<input type="password" placeholder="Enter Password" name="psw" required>
+
+				<label for="psw-repeat"><b>Repeat Password</b></label>
+				<input type="password" placeholder="Repeat Password" name="psw-repeat" required>
+				
+			  	<!-- <input type="submit" name="submit"><br> -->
+
+				<button type="submit" class="registerbtn">Submit</button>
+				
+			</form>
+			</div>
+			
+			<div id="show">
+				<table id="table">
+					
+				</table>
+				
+			</div>
+
+			
+			<script type="text/javascript" src="js/jquery-2.2.4.min.js"></script>
+			 <script src="js/web3.min.js"></script>
+    		<script src="js/truffle-contract.js"></script>
+    		<script src="js/ureg_app.js"></script>
+		</body>
+	</html>

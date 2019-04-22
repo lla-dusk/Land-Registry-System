@@ -1,32 +1,33 @@
 pragma solidity >=0.4.21 <0.6.0;
 
 contract Property {
+	//UIDAI - Unique Identification Authority of India
+	address public admin;
+	//address public Uidai;
+	address public Rera;
 	
 	struct User {
-		bytes32 Name;
-		bytes32 AdharNo;
-		bytes32 PanNo;
-		bytes32 email;
-		bytes32 PhoneNo;
+		string Name;
+		string AdharNo;
+		string PanNo;
+		string email;
+		uint PhoneNo;
 	}
 
 	struct Land {
+		address currOwner;
+		bool verifiedByRera;
 		bool LandOnRoad;
-		bytes32 ProposedLandUse;
-		bytes32 LandArea;
-		bytes32 Jurisdiction;
-		bytes32 LocalBodyName;
-		bytes32 Plot;
-		bytes32 Khatian;
-		bytes32 District;
-		bytes32 Thana;
-		bytes32 LocalBody;
-		bytes32 Price;
-	}
-
-	modifier onlyOwner(address _user) { 
-		require (_user == msg.sender); 
-		_; 
+		string ProposedLandUse;
+		string LandArea;
+		string Jurisdiction;
+		string LocalBodyName;
+		string Plot;
+		string Khatian;
+		string District;
+		string Thana;
+		string LocalBody;
+		uint Price;
 	}
 
 	uint public landCount = 0;
@@ -34,17 +35,49 @@ contract Property {
 	mapping (address => User) users;
 	address[] public userAcc;
 
-	mapping (address => mapping(uint => Land)) userLands;
+	mapping (uint => Land) userLands;
 	uint[] public lands;
+
+	mapping (uint => address) landOwnerChange;
+
+	mapping (uint => bool) verifiedLands;
+
+	mapping (address => uint256) balanceOf;
 
 	event addUsers (address newUser);
 
 	event addLands (uint indexed _landId);
 
-	function addUser (address _address, bytes32 _name, bytes32 _adharNo, bytes32 _panNo, bytes32 _email, bytes32 _phoneNo) public returns(bool) {
+	event Transfer(
+		address indexed _from, 
+		address indexed _to,
+		uint256 _value);
+
+	modifier onlyOwner(uint _landId) { 
+	 	require (userLands[_landId].currOwner == msg.sender); 
+		_; 
+	}
+
+	modifier verifiedByAdmin() { 
+		require (msg.sender == admin); 
+		_; 
+	}
+	
+
+	modifier byRera() { 
+		require (msg.sender == Rera); 
+		_; 
+	}
+	
+	constructor () public {
+		admin = msg.sender;
+		Rera = address(2);
+	}
+
+	function addUser (address _address, string memory _name, string memory _adharNo, string memory _panNo, string memory _email, uint _phoneNo) public returns(bool) {
 		User memory user = users[_address];
 		for(uint i=1; i<=userAcc.length; i++) {
-			if(_adharNo == user.AdharNo) {
+			if(uint(keccak256(abi.encodePacked(_adharNo))) == uint(keccak256(abi.encodePacked(user.AdharNo)))) {
 				"User ID Already Exists!";
 				return false;
 			}
@@ -63,7 +96,7 @@ contract Property {
 		return userAcc.length;
 	}
 	
-	function getUserDetails (address _address) public view returns(bytes32, bytes32, bytes32) {
+	function getUserDetails (address _address) public view returns(string memory, string memory, uint) {
 		return (users[_address].Name, users[_address].email, users[_address].PhoneNo);
 	}
 
@@ -71,9 +104,11 @@ contract Property {
 		return userAcc;
 	}
 
-	function addLand (bool _landOnRoad, bytes32 _proposedLandUse, bytes32 _landArea, bytes32 _jurisdiction, bytes32 _localBodyName, bytes32 _plot, bytes32 _khatian, bytes32 _district, bytes32 _thana, bytes32 _localBody, bytes32 _price) public onlyOwner(msg.sender) returns (bool) {
+	function addLand (bool _landOnRoad, string memory _proposedLandUse, string memory _landArea, string memory _jurisdiction, string memory _localBodyName, string memory _plot, string memory _khatian, string memory _district, string memory _thana, string memory _localBody, uint _price) public returns (bool) {
 		landCount++;
-		Land memory land = userLands[msg.sender][landCount];
+		Land memory land = userLands[landCount];
+		land.currOwner = msg.sender;
+		land.verifiedByRera = false;
 		land.LandOnRoad = _landOnRoad;
 		land.ProposedLandUse = _proposedLandUse;
 		land.LandArea = _landArea;
@@ -90,11 +125,61 @@ contract Property {
 		return true;
 	}
 
+	function approveLand (uint _landId) byRera public returns(bool) {
+		//require (userLands[_landId].currOwner != msg.sender);
+		userLands[_landId].verifiedByRera = true;
+		verifiedLands[_landId] = true;
+		return true;
+	}
+	
+
 	function getLandCount () public view returns(uint) {
 		return lands.length;
 	}
 
-	function getLandByPrice (bytes32 _price) public view returns(uint[] memory) {
+	//address(0) = 0x0 => is used to check if the address is empty 
+	function changeLandOwner (uint _landId, address _newOwner) onlyOwner(_landId) public returns(bool) {
+		//new owner should not be the same old owner
+		require (userLands[_landId].currOwner != _newOwner);
+		//no ownership change request must exist
+		require (landOwnerChange[_landId] == address(0));
+		//ownership change is requested
+		landOwnerChange[_landId] = _newOwner;
+		return true;
+	}
+
+	function approveChangeOwner (uint _landId) verifiedByAdmin public returns(bool) {
+		//ownership change request must exist
+		require (landOwnerChange[_landId] != address(0));
+		userLands[_landId].currOwner = landOwnerChange[_landId];
+		//empty the owner change request
+		landOwnerChange[_landId] = address(0);
+		return true;
+	}
+
+	function transfer (address _to, uint256 _value) public returns(bool) {
+		//exception of account doesn't have enuf
+		require(balanceOf[msg.sender] >= _value); 
+		//runs the code below only if require is true
+		//transfer the balance
+		balanceOf[msg.sender] -= _value;
+		balanceOf[_to] += _value;
+		//transfer event
+		emit Transfer(msg.sender, _to, _value);
+		//return boolean
+		return true;
+	}
+	
+
+	function changeLandPrice (uint _landId, uint _newPrice) onlyOwner(_landId) public returns(bool) {
+		//no ownership change request must exist
+		require (landOwnerChange[_landId] == address(0));
+		userLands[_landId].Price = _newPrice;
+		return true;
+	}
+	
+
+	function getLandByPrice (uint _price) public view returns(uint[] memory) {
 		Land memory land;
 		for (uint i = 1; i <= lands.length; i++) { 
 			if (land.Price == _price) {
@@ -102,4 +187,34 @@ contract Property {
 			}
 		}
 	}	
+
+	function getLandByLandArea (string memory _landArea) public view returns(uint[] memory) {
+		Land memory land;
+		for (uint i = 1; i <= lands.length; i++) { 
+			if (uint(keccak256(abi.encodePacked(land.LandArea))) == uint(keccak256(abi.encodePacked(_landArea)))) {
+				return lands;
+			}
+		}
+	}
+
+	function getLandByDistrict (string memory _district) public view returns(uint[] memory) {
+		Land memory land;
+		for (uint i = 1; i <= lands.length; i++) { 
+			if (uint(keccak256(abi.encodePacked(land.District))) == uint(keccak256(abi.encodePacked(_district)))) {
+				return lands;
+			}
+		}
+	}
+
+	function getLandByLandOnRoad (string memory _landOnRoad) public view returns(uint[] memory) {
+		Land memory land;
+		for (uint i = 1; i <= lands.length; i++) { 
+			if (uint(keccak256(abi.encodePacked(land.LandOnRoad))) == uint(keccak256(abi.encodePacked(_landOnRoad)))) {
+				return lands;
+			}
+		}
+	}
+	
 }
+
+

@@ -1,0 +1,172 @@
+	<!DOCTYPE html>
+	<html lang="zxx" class="no-js">
+	<head>
+		<!-- Mobile Specific Meta -->
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<!-- meta character set -->
+		<meta charset="UTF-8">
+		<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com"> -->
+		<!-- Site Title -->
+		<title>Land Details</title>
+		<style>
+		
+				body {
+				  font-family: Arial, Helvetica, sans-serif;
+				  background-color: black;
+				}
+
+				* {
+				  box-sizing: border-box;
+				}
+
+				/* Add padding to containers */
+				.container {
+				  padding: 16px;
+				  background-color: white;
+				  width:50%;
+				  margin:50px 50px 50px 350px;
+				}
+
+				/* Full-width input fields */
+				input[type=text], input[type=password], input[type=number] {
+				  width: 100%;
+				  padding: 15px;
+				  margin: 5px 0 22px 0;
+				  display: inline-block;
+				  border: none;
+				  background: #f1f1f1;
+				}
+				
+				input[type=text]:focus, input[type=password]:focus, input[type=number]:focus {
+				  background-color: #ddd;
+				  outline: none;
+				}
+				
+				/* Set a style for the submit button */
+				.registerbtn {
+				  background-color: #4CAF50;
+				  color: white;
+				  padding: 16px 20px;
+				  margin: 8px 0;
+				  border: none;
+				  cursor: pointer;
+				  width: 100%;
+				  opacity: 0.9;
+				}
+				
+				/* Set a grey background color and center the text of the "sign in" section */
+				.signin {
+				  background-color: #f1f1f1;
+				  text-align: center;
+				}
+				
+				.container select{
+					width:100%;
+					padding: 15px;
+					margin: 5px 0 22px 0;
+					display: inline-block;
+					border: none;
+					background: #f1f1f1;
+				}
+				
+				.container select:focus{
+					width:auto;
+					background-color: #ddd;
+					outline: none;
+				}
+				
+		</style>
+
+	</head>
+		<body>
+			
+			<!-- test 3 -->
+			<div id="accountAddress"></div>
+			<br>
+			<div class="container">
+			<center>
+			<h1>Land Details</h1>
+			<p>Please fill in the land details</p></center>
+			<hr>
+			<form name = "landForm" method="get" onsubmit="App.user();">
+				
+				<label for="onroad"><b>Is Property on Road?</b></label>
+				<select>
+					<option value="sel">--</option>
+					<option value="yes">Yes</option>
+					<option value="yes">No</option>
+				</select>
+				
+				<label for="landuse"><b>Proposed Land Use</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="landArea"><b>Area of Land</b></label>
+				<input type="number" placeholder="Acre" name="Acre" id="acre" required>
+				<input type="number" placeholder="Decimal" name="Deci" id="deci" required>
+				<input type="number" placeholder="Bigha" name="Katha" id="katha" required>
+				<input type="number" placeholder="Chetak" name="Chetak" id="chetak" required>
+				<input type="number" placeholder="Square Feet" name="Sqft" id="sqft" required>
+				
+				<label for="landuse"><b>Proposed Land Use</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="juri"><b>Jurisdiction of</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="lbodynm"><b>Local Body Name</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="plotno"><b>Plot No.</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="khatianno"><b>Khatian No.</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="district"><b>District</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="thana"><b>Thana</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+				<label for="lbody"><b>Local Body</b></label>
+				<select>
+					<option value="sel">--</option>
+				</select>
+				
+			  	<!-- <input type="submit" name="submit"><br> -->
+
+				<button type="submit" class="registerbtn">Submit</button>
+				
+			</form>
+			</div>
+			
+			<div id="show">
+				<table id="table">
+					
+				</table>
+				
+			</div>
+
+			
+			<script type="text/javascript" src="js/jquery-2.2.4.min.js"></script>
+			 <script src="js/web3.min.js"></script>
+    		<script src="js/truffle-contract.js"></script>
+    		<script src="js/land_app.js"></script>
+		</body>
+	</html>
