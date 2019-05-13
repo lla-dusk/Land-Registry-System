@@ -1,8 +1,10 @@
 pragma solidity >=0.4.21 <0.6.0;
 
+import "./Bank.sol";
+
 contract Property {
-	address public admin;
-	address public Rera;
+	address payable admin;
+	Bank public bankContract;
 	
 	struct User {
 		string Name;
@@ -14,53 +16,50 @@ contract Property {
 
 	struct Land {
 		address Owner;
-		uint256 landId;
 		string ReraRegisteredNo;
 		bool LandOnRoad;
-		string LandArea;
+		//string LandArea;
 		string District;
 		string State;
 		uint256 Price;
 	}
 
-	struct Bank {
-		string bankName;
-		address addr;
-	}
-
-	uint256 loanId = 0;
 	uint256 public landCount = 0;
-	uint256 bankId = 0;
 
-	mapping (address => User) public users;
-	address[] public userAcc;
+	mapping (address => User) public users; //user address => User struct
+	address[] public userAcc; //stores address of every user added
 
-	mapping (uint256 => Land) public userLands;
-	uint256[] public lands;
+	mapping (uint256 => Land) public userLands; //landId(i.e., landCount++) => Land struct
+	uint256[] public lands; //stores rera registered number of every land added
 
+	//rera registered number (its hash) => address of the owner requesting to buy the land
 	mapping (uint256 => address) public landOwnerHistory;
 
-	mapping (uint256 => address) public landOwnerChange;
+	//rera registered number (its hash) => address of the owners
+	mapping (uint256 => address) public landOwnerChangeRequest;
 
-	mapping (uint256 => bool) public verifiedLands;
+	//buyer address => loan amount
+	mapping (address => mapping (uint256 => uint256)) public loan;
 
-	mapping (uint256 => Bank) public bank;
-	address[] public banks;
-
-	//sender to receiver to price
-	mapping (address => mapping (address => uint256)) transaction;
-
-	//mapping of loan id to user address to amount
-	mapping (uint256 => mapping(address => uint256)) loan;
-	
-	//bank address to user address to loan amount approved success
-	mapping (address => mapping(address => bool)) bankPayment;
-	
 	event addUsers (address newUser);
 
-	event addLands (uint256 indexed _landId);
+	event addLands (
+		uint256 _landId,
+		string district,
+		uint256 price
+	);
 
-	event changeOwnership (uint256 indexed _landId, address _owner);
+	event changeOwnership (
+		string _reraRegisteredNo, 
+		address _oldOwner,
+		address _newOwner
+	);
+
+	event Transaction (
+		address sender,
+		address receiver,
+		uint256 value
+	);
 
 	modifier onlyOwner(uint256 _landId) { 
 	 	require (userLands[_landId].Owner == msg.sender); 
@@ -72,138 +71,183 @@ contract Property {
 		_; 
 	}
 	
-	modifier byRera() { 
-		require (msg.sender == Rera); 
-		_; 
-	}
-	
 	constructor () public {
 		admin = msg.sender;
-		Rera = address(2);
 	}
 
+	bool duplicateUser = false;
+
+	//adds msg.sender as the new user
 	function addUser (string memory _name, string memory _adharNo, string memory _panNo, string memory _email, string memory _phoneNo) public returns(bool) {
 		address _address = msg.sender;
-		for(uint256 i=1; i<=userAcc.length; i++) {
-			if(uint(keccak256(abi.encodePacked(users[userAcc[i]].AdharNo))) == uint(keccak256(abi.encodePacked(_adharNo)))) {
-				"User ID Already Exists!";
-				return false;
-			}
-		}
+		//checks for double registration
+		checkForDuplicateUser (_adharNo);
+		//procced only if the requested adahr number is not registered earlier
+		require (duplicateUser == false);
+		//data is mapped in the users mapping
 		users[_address] = User(_name, _adharNo, _panNo, _email, _phoneNo);
-		userAcc.push(msg.sender) -1;
+		//address is stored in the user addresses array, userAcc
+		userAcc.push(msg.sender);
+		//shout out the address of the new user added
 		emit addUsers(msg.sender);
 		return true;
 	}
 
-	function getUserCount () public view returns(uint256) {
-		return userAcc.length;
+	//checks the requested adhar number to avoid double registration of a single user
+	function checkForDuplicateUser (string memory _adharNo) private {
+		for(uint256 i=1; i<=userAcc.length; i++) {
+			//checks if the aadhar number of the new requesting user is similar to any already registered user
+			//eliminates double registration of the same individual
+			if(uint(keccak256(abi.encodePacked(users[userAcc[i]].AdharNo))) == uint(keccak256(abi.encodePacked(_adharNo)))) {
+				"User ID Already Exists!";
+				duplicateUser = true;
+			}
+			duplicateUser = false;
+		}
 	}
 	
+	//users can be searched via their addresses
+	//one user returned at a time
 	function getUserDetails (address _address) public view returns(string memory, string memory, string memory) {
 		return (users[_address].Name, users[_address].email, users[_address].PhoneNo);
 	}
 
+	//returns the user count and all the addresses of the users there in the platform
 	function getAllUsers () public view returns (address[] memory, uint256) {
-		uint256 count = 0;
-		for(uint256 i = 1; i <= userAcc.length; i++){
-			count++;
+		return (userAcc, userAcc.length);
+	}
+
+	bool duplicateLand = false;
+
+	//user can add new lands by calling this function, becoming the owner of the land
+	function addLand (string memory _reraRegisteredNo, bool _landOnRoad, string memory _district, string memory _state, uint256 _price) public returns (bool) {
+		landCount++;
+		checkForDuplicateLand (_reraRegisteredNo);
+		require (duplicateLand == false);
+		//data is mapped to the userLands mapping, landId/landCount being the key
+		userLands[landCount] = Land(msg.sender, _reraRegisteredNo, _landOnRoad, _district, _state, _price);
+		//store the hash of the rera registered number in the lands array
+		lands.push(uint(keccak256(abi.encodePacked(_reraRegisteredNo))));
+		//shout out for every new land added
+		emit addLands(landCount, _district, _price);
+		//address of the owner mapped with the hash of the rera registered number (key)
+		//this mapping has the history of the owners of a land
+		landOwnerHistory[uint(keccak256(abi.encodePacked(_reraRegisteredNo)))] = msg.sender;
+		return true;
+	}
+
+	function checkForDuplicateLand (string memory _reraRegisteredNo) private {
+		for(uint256 i = 1; i <= lands.length; i++) {
+			//checks if rera registered number of the new land requested is similar to any of the previous lands
+			if(uint(keccak256(abi.encodePacked(userLands[lands[i]].ReraRegisteredNo))) == uint(keccak256(abi.encodePacked(_reraRegisteredNo)))) {
+				"Land Already Exists!";
+				duplicateLand = true;
+			}
+			duplicateLand = false;
 		}
-		return (userAcc, count);
 	}
 
-	function addBank (address _addr, string memory _name) verifiedByAdmin public returns (bool) {
-		bankId++;
-		bank[bankId] = Bank(_name, _addr);
-		banks.push(_addr);
-		return true;
+	//returns the total land count and the array 'lands' giving the hash of all the rera registered numbers
+	function getAllLands () public view returns (uint256[] memory, uint256) {
+		return (lands, lands.length);
 	}
 
-	function addLand (string memory _reraRegisteredNo, bool _landOnRoad, string memory _landArea, string memory _district, string memory _state, uint256 _price) public returns (bool) {
-		uint256 _landId = landCount++;
-		userLands[_landId] = Land(msg.sender, _landId, _reraRegisteredNo, _landOnRoad, _landArea, _district, _state, _price);
-		lands.push(_landId) -1;
-		emit addLands(_landId);
-		landOwnerHistory[_landId] = msg.sender;
-		return true;
+	//any land can be searched using the landId and rera registered number of the land
+	function getLandDetailsById (uint256 _landId, uint256 _reraRegisteredNo) public view returns(address, string memory, bool, string memory, string memory, uint256) {
+		return (userLands[_landId].Owner, userLands[_landId].ReraRegisteredNo, userLands[_landId].LandOnRoad, userLands[_landId].District, userLands[_landId].State, userLands[_landId].Price);
 	}
 
-	function approveLand (uint256 _landId) byRera public returns(bool) {
-		//require (userLands[_landId].currOwner != msg.sender);
-		//userLands[_landId].verifiedByRera = true;
-		verifiedLands[_landId] = true;
-		return true;
+	//returns all the lands (number of lands and hash of the rera registered number) owned by the msg.sender
+	function getLandDetails () public view returns(uint256, uint[] memory) {
+		uint[] memory landIds;
+		for(uint i = 0; i <= lands.length; i++){
+			if(userLands[i].Owner == msg.sender){
+				landIds[i] = uint(keccak256(abi.encodePacked(userLands[i+1].ReraRegisteredNo)));
+			}
+		}
+		return (landIds.length, landIds);
 	}
 
-	function getLandCount () public view returns(uint256) {
-		return lands.length;
-	}
+	//gets the balance of an address
+	function getBalance(address addr) public view returns(uint256) {
+        return addr.balance;
+    }
 
 	//address(0) = 0x0 => is used to check if the address is empty 
-	function buyLand (uint256 _landId, bool _bankLoan, address _bankAddr) public payable {
+	function buyLand (uint256 _landId, bool _bankLoan) public payable {
 		//new owner should not be the same old owner
 		require (userLands[_landId].Owner != msg.sender);
 		//no ownership change request must exist
-		require (landOwnerChange[_landId] == address(0));
-		if (_bankLoan == true) {
+		//require (landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] == address(0));
+		if (_bankLoan == true) { 
 			"Tell the bank to pay";
-			loanId++;
-			loan[loanId][msg.sender] = userLands[_landId].Price;
-			transferFromBank(_bankAddr, userLands[_landId].Price, msg.sender);
+			//calls for the transferLoan function in the Bank contract which transfers the amount
+			bankContract.transferLoan(userLands[_landId].Price); 
+			loan[msg.sender][uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] = userLands[_landId].Price;
+			emit Transaction (address(bankContract), admin, userLands[_landId].Price);
 		}
 		else {
 			//buyer must have enuf balance to pay to the seller
 			//msg.value will be send to the contract address
-			require (userLands[_landId].Price  <= msg.sender.balance);
-			transaction[msg.sender][address(this)] = userLands[_landId].Price;
+			require (userLands[_landId].Price  <= getBalance(msg.sender));
+			require (msg.value == userLands[_landId].Price);
+			emit Transaction (msg.sender, admin, userLands[_landId].Price);
 		}
-		//ownership change is requested
-		landOwnerChange[_landId] = msg.sender;
+		//ownership change is requested in the mapping
+		landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] = msg.sender;
 	}
 
-	function ChangeLandOwner (uint256 _landId, address _newOwner) onlyOwner(_landId) public {
+	//returns the addresses of all the buyers interested in buying a particular land
+	function displayBuyers (string memory _reraRegisteredNo) public view returns (uint256, address[] memory) {
+		address[] memory buyers;
+		for (uint i = 0; i <= userAcc.length; i++) {
+			//checks for the user address requested for buying that particular land
+			if (userAcc[i] == landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[i+1].ReraRegisteredNo)))]) {
+				buyers[i] = userAcc[i];
+			} 
+		}
+		return (buyers.length, buyers);
+	}
+
+	function changeLandOwner (uint256 _landId, address _newOwner) onlyOwner(_landId) public {
 		//ownership change request must exist
-		require (landOwnerChange[_landId] != address(0));
+		require (landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] != address(0));
 		//transfer coins from contract to seller
 		//uint160 is used to explicitly convert the address as payable
 		address(uint160(msg.sender)).transfer(userLands[_landId].Price);
-		transaction[address(this)][msg.sender] = userLands[_landId].Price;
-		//transfers the ownership to the buyer
-		userLands[_landId].Owner = landOwnerChange[_landId];
-		//empty the owner change request
-		landOwnerChange[_landId] = address(0);
+		emit Transaction (admin, msg.sender, userLands[_landId].Price);
 		//admin, i.e., the government approves the change of ownership;
-		approveOwnership(_landId, userLands[_landId].Owner);
+		govSignOwnership(userLands[_landId].ReraRegisteredNo, userLands[_landId].Owner, _newOwner);
+		//transfers the ownership to the buyer
+		userLands[_landId].Owner = landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))];
+		refund(_landId);
+		//empty the owner change request
+		landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] = address(0);	
 	}
 
-	modifier onlyBank(address _addr) { 
-		for (uint i = 0; i <= banks.length; i++) {
-			if (banks[i] == _addr) {
-				_;
-			}
+	//approves the land ownership change and stores the ownership history in the mapping
+	function govSignOwnership (string memory _reraRegisteredNo, address _owner, address _newOwner) private {
+		emit changeOwnership (_reraRegisteredNo, _owner, _newOwner);
+		landOwnerHistory[uint(keccak256(abi.encodePacked(_reraRegisteredNo)))] = _newOwner;
+	}
+
+	function refund (uint256 _landId) private {
+		//refunds the money to all the other buyers who requested to buy the land
+		for (uint i = 0; i <= userAcc.length; i++) {
+			//checks for the user address requested for buying that particular land
+			if (userAcc[i] == landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] && userAcc[i] != userLands[_landId].Owner) {
+				address(uint160(userAcc[i])).transfer(userLands[_landId].Price);
+			} 
 		}
 	}
 
-	function transferFromBank (address _bankAddr, uint256 _value, address _user) onlyBank(_bankAddr) public payable {
-		//wallet balance of the address is enuf
-		require (_value <= _bankAddr.balance);
-		//set ether payable to the contract is equal to the price of the land
-		require (_value == msg.value);
-		transaction[_bankAddr][address(this)] = _value;
-		bankPayment[_bankAddr][_user] = true;
-	}
-
-	function approveOwnership (uint256 _landId, address _owner) verifiedByAdmin public returns (bool) {
-		emit changeOwnership (_landId, _owner);
-		landOwnerHistory[_landId] = _owner;
-		return true;
-	}
-
-	function landOwnershipHistory (uint256 _landId) public returns (uint256, address[] memory) {
+	//returns the Ownership history of a land
+	//returns the number of previous owners and their addresses
+	function landOwnershipHistory (string memory _reraRegisteredNo, uint256 _landId) public returns (uint256, address[] memory) {
 		address[] memory history;
 		uint256 count = 0;
 		for (uint256 i = 0; i <= lands.length; i++) {
-			if (_landId == userLands[i].landId) {
+			if (uint(keccak256(abi.encodePacked(_reraRegisteredNo))) == uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))) {
 				count++;
 				history[i] = userLands[_landId].Owner;
 			}		
@@ -211,46 +255,21 @@ contract Property {
 		return (count, history);
 	}
 
+	//only the land owner can call this function if he wants to change the price of the land
 	function changeLandPrice (uint256 _landId, uint256 _newPrice) onlyOwner(_landId) public returns(bool) {
 	 	//no ownership change request must exist
-	 	require (landOwnerChange[_landId] == address(0));
+	 	require (landOwnerChangeRequest[uint(keccak256(abi.encodePacked(userLands[_landId].ReraRegisteredNo)))] == address(0));
 	 	userLands[_landId].Price = _newPrice;
 	 	return true;
 	 }
 
-	function getLandDetailsById (uint256 _landId) public view returns(address, string memory, bool, string memory, string memory, string memory, uint256) {
-		return (userLands[_landId].Owner, userLands[_landId].ReraRegisteredNo, userLands[_landId].LandOnRoad, userLands[_landId].LandArea, userLands[_landId].District, userLands[_landId].State, userLands[_landId].Price);
-	}
-
-	function getAllLands () public view returns (uint256[] memory, uint256) {
-		uint256 count = 0;
-		for(uint256 i = 1; i <= lands.length; i++){
-			count++;
-		}
-		return (lands, count);
-	}
-
-	//owner's lands' count
-	function getLandDetails () public view returns(uint256, uint[] memory) {
+	function getLandByPriceRange (uint256 _priceA, uint256 _priceB) public view returns(uint256, uint[] memory) {
 		uint256 count = 0;
 		uint[] memory landIds;
-		for(uint i=1;i<=lands.length;i++){
-			if(userLands[i].Owner == msg.sender){
+		for (uint256 i = 0; i <= lands.length; i++) { 
+			if (userLands[i].Price >= _priceA && userLands[i].Price <= _priceB) {
 				count++;
-				landIds[i] = userLands[i].landId;
-			}
-		}
-		return (count, landIds);
-	}
-
-	function getLandByPrice (uint256 _price) public view returns(uint256, uint[] memory /*address, string memory, bool, string memory, string memory, string memory, string memory*/) {
-		uint256 count = 0;
-		uint[] memory landIds;
-		for (uint256 i = 1; i <= lands.length; i++) { 
-			if (userLands[i].Price == _price) {
-				count++;
-				//return (userLands[i].Owner, userLands[i].ReraRegisteredNo, userLands[i].LandOnRoad, userLands[i].LandArea, userLands[i].District, userLands[i].State, userLands[i].Price);
-				landIds[i] = userLands[i].landId;
+				landIds[i] = uint(keccak256(abi.encodePacked(userLands[i+1].ReraRegisteredNo)));
 			}
 		}
 		return (count, landIds);

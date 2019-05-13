@@ -1,122 +1,88 @@
-var Property = artifacts.require("./Property.sol");
+const Property = artifacts.require("./Property.sol")
+//const rera = accounts[2]
+const users = new Array()
 
-contract("Property", function(accounts){
-	var propertyInstance;
-	var userAcc = new Array();
-	var lands = new Array();
-	var landCount = 0;
+contract('Property', (accounts) => {
+	before(async () => {
+		this.property = await Property.deployed()
+	})
 
-	it('create a new user', function(){
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			userAcc[0] = "0xEd37189229E6252048702dc747CBcd57cB8e44ed";
-			return propertyInstance.addUser('me','45544','66545','se@gh.b', '7766777');
-		});
-	});
+	it('contract is successfully deployed', async () => {
+		const address = await this.property.address
+		assert.notEqual(address, 0x0)
+		assert.notEqual(address, '')
+		assert.notEqual(address, null)
+		assert.notEqual(address, undefined)
+	})
 
-	it('create a new land', function(){
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			lands[1] = 1
-			return propertyInstance.addLand('9876', true, 'area', 'district', 'state', 2222, {from: userAcc[0]});
-		});
-	});
+	it('adds users', async () => {
+		const newUser = await this.property.addUser('Sneha', '1111', '2222', 'sneha@email.com', '98765', { from: accounts[1] })
+		const user = await this.property.users(accounts[1])
+		const event = newUser.logs[0].args
+		assert.equal(event.newUser, accounts[1])
+		users[0] = accounts[1]
+		assert.equal(users[0], accounts[1], "correct address")
+		console.log(users)
+	})
 
-	it('Checks the user mapping', function(){
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			return propertyInstance.getUserDetails('0xEd37189229E6252048702dc747CBcd57cB8e44ed');
-		}).then(function(myUser){
-			assert.equal(myUser[0], 'me', "correct name");
-			assert.equal(myUser[1], 'se@gh.b', "correct email");
-			assert.equal(myUser[2], '7766777', "correct phone number");
-			/*return propertyInstance.getUserDetails('0x0708c57Bf78180e2DFA629A043e5CA10dCcd2f85');
-		}).then(function(myUser){
-			assert.equal(myUser[0], 'he', "correct name");
-			assert.equal(myUser[1], 'sd@gh.b', "correct email");
-			assert.equal(myUser[2], '7786777', "correct phone number");*/
-		});
-	});
+	it('adds another users', async () => {
+		const newUser = await this.property.addUser('Snehal', '11110', '22220', 'snehal@email.com', '987654', { from: accounts[3] })
+		const user = await this.property.users(accounts[3])
+		const event = newUser.logs[0].args
+		assert.equal(event.newUser, accounts[3])
+		users[1] = accounts[3]
+		assert.equal(users[1], accounts[3], "correct address")
+		console.log(users)
+	})
 
-	it('Checks the land mapping', function(){
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			landCount++;
-			landId = 1;
-			return propertyInstance.getLandDetailsById(landId);
-		}).then(function(myland){
-			assert.equal(myland[0], userAcc[0], "correct owner");
-			assert.equal(myland[1], 1, "correct land id");
-			assert.equal(myland[2], '9876', "correct name");
-			assert.equal(myland[3], true, "rera verified");
-			assert.equal(myland[4], 'area', "correct area");
-			assert.equal(myland[5], 'district', "correct district");
-			assert.equal(myland[6], 'state', "correct state");
-			assert.equal(myland[7], 2222, "correct price");
-		});
-	});
+	it('check user mapping', async () => {
+		const user = await this.property.users(accounts[1])
+		assert.equal(user.Name, 'Sneha', "correct name")
+		assert.equal(user.AdharNo, '1111', "correct aadhar number")
+		assert.equal(user.PanNo, '2222', "correct pan number")
+		assert.equal(user.email, 'sneha@email.com', "correct email")
+		assert.equal(user.PhoneNo, '98765', 'correct phone number')
+		//assert.equal(users[0], accounts[1], "correct address")
+	})
 
-	it('returns user count', function() {
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			userCount = 1;
-			return propertyInstance.getUserCount();
-		}).then(function(count){
-			assert.equal(count, userCount);
+	it('adds land', async () => {
+		const newLand = await this.property.addLand('999-999', true, 'Kolkata', 'WB', 10, { from: accounts[1] })
+		const landCount = await this.property.landCount()
+		assert.equal(landCount, 1)
+		const event = newLand.logs[0].args
+		assert.equal(event._landId.toNumber(), 1, "correct land id")
+		const lands = await this.property.userLands(landCount)
+		const landArr = new Array()
+		landArr[0] = lands
+		console.log(landArr)
+	})
+
+	it('check land mapping', async () => {
+		const landCount = await this.property.landCount()
+		const land = await this.property.userLands(landCount)
+		assert.equal(land.Owner, accounts[1], "correct owner")
+		assert.equal(land.ReraRegisteredNo, '999-999', "correct rera id")
+		assert.equal(land.LandOnRoad, true, "correct feature")
+		//assert.equal(land.LandArea, 'Salt Lake', "correct area")
+		assert.equal(land.District, 'Kolkata', "correct district")
+		assert.equal(land.State, 'WB', "correct state")
+		assert.equal(land.Price.toNumber(), 10, "correct price")
+	})
+
+	it('buy land', () => {
+		const landCount = this.property.landCount()
+		const buy = this.property.buyLand(landCount, false, { from: accounts[3] })
+		.then(function(event) {
+			assert(event.logs[0].args)
+			return this.property.transaction(accounts[3],address[0])
 		})
-	});
+		.then(function(txn) {
+			assert.equal(txn[0], 10, "correct amount send")	
+			return this.property.landOwnerChange(landCount)		
+		})
+		.then(function(change) {
+			assert.equal(change[0], accounts[3])
+		})
+	})
 
-	it('returns all users', function() {
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			userCount = 1;
-			return propertyInstance.getAllUsers();
-		}).then(function(userAcc){
-			console.log(userAcc, userCount);
-		});
-	});
-
-	it('change land price', function(){
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			landId = 1;
-			newPrice = '999777';
-			return propertyInstance.changeLandPrice(landId, newPrice, {from: '0xEd37189229E6252048702dc747CBcd57cB8e44ed'});
-		}).then(function(bool){
-			assert(bool, "true");
-		});
-	});
-
-	it('returns all lands', function() {
-		return Property.deployed().then(function(instance){
-			propertyInstance = instance;
-			return propertyInstance.getAllLands();
-		}).then(function(lands){
-			console.log(lands, landCount);
-		});
-	});
-
-	it('returns an owner lands count', function() {
-		return Property.deployed().then(function(instance) {
-			propertyInstance = instance;
-			return propertyInstance.getLandDetails({from: "0xEd37189229E6252048702dc747CBcd57cB8e44ed"});
-		}).then(function(count, landArr) {
-			assert.equal(count, landCount);
-			assert.equal(landArr, lands);
-			console.log(landCount);
-			console.log(lands);
-		});
-	});
-
-	it('return number of lands by price', function() {
-		return Property.deployed().then(function(instance) {
-			propertyInstance = instance;
-			return propertyInstance.getLandByPrice('2222');
-		}).then(function(count) {
-				assert.equal(count[0], '9876', "land with same price");
-				assert.equal(count[1], '2222', "land with same price");
-			
-		});
-	});
-
-});
+})
